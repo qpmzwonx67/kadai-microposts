@@ -108,14 +108,55 @@ class User extends Authenticatable
         // それらのユーザが所有する投稿に絞り込む
         return Micropost::whereIn('user_id', $userIds);
     }
+    
+    public function favorites(){
+        return $this->belongsToMany(Micropost::class, 'favorites', 'user_id', 'micropost_id')->withTimestamps();
+    }
+
+    public function favorite($micropostId)
+    {
+        // すでにお気に入り登録しているかの確認
+        $exist = $this->is_favorite($micropostId);
+        // 相手が自分自身かどうかの確認
+
+        if ($exist) {
+            // すでにお気に入り登録していれば何もしない
+            return false;   
+        } else {
+            // まだであれば登録する
+            $this->favorites()->attach($micropostId);
+            return true;
+        }
 }
+    public function unfavorite($micropostId)
+    {
+        // すでにお気に入り登録しているかの確認
+        $exist = $this->is_favorite($micropostId);
+
+        if ($exist) {
+            // すでにお気に入り登録してれば登録を外す
+            $this->favorites()->detach($micropostId);
+            return true;
+        } else {
+            // 未フォローであれば何もしない
+            return false;
+        }
+    }
+    public function is_favorite($micropostId)
+    {
+        // お気に入り登録中ユーザの中に $micropostIdのものが存在するか
+        return $this->favorites()->where('micropost_id', $micropostId)->exists();
+    }
+    
     
     /**
-     * このユーザに関係するモデルの件数をロードする。
+     * このユーザに関係するモデルの件数をロードする。favorites追加。
      */
     public function loadRelationshipCounts()
     {
-        $this->loadCount(['microposts', 'followings', 'followers']);
+        $this->loadCount(['microposts', 'followings', 'followers','favorites']);
     }
+    
+    
 }    
     
